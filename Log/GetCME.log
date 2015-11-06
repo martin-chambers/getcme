@@ -1,0 +1,10 @@
+2015-11-06 15:51:53 Downloaded cme.a.pa2.zip from ftp://ftp.cmegroup.com/span/data/cme/ to C:\git\GetCME\Downloads\
+2015-11-06 15:51:53 Unzipped cme.a.pa2.zip to C:\git\GetCME\Unzip\
+2015-11-06 15:53:20 Downloaded cme.a.pa2.zip from ftp://ftp.cmegroup.com/span/data/cme/ to C:\git\GetCME\Downloads\
+2015-11-06 15:53:21 Unzipped cme.a.pa2.zip to C:\git\GetCME\Unzip\
+2015-11-06 15:54:44 Downloaded cme.a.pa2.zip from ftp://ftp.cmegroup.com/span/data/cme/ to C:\git\GetCME\Downloads\
+2015-11-06 15:54:45 Unzipped cme.a.pa2.zip to C:\git\GetCME\Unzip\
+2015-11-06 15:55:43 Downloaded cme.a.pa2.zip from ftp://ftp.cmegroup.com/span/data/cme/ to C:\git\GetCME\Downloads\
+2015-11-06 15:55:43 Unzipped cme.a.pa2.zip to C:\git\GetCME\Unzip\
+2015-11-06 15:57:20 ERROR downloading no_such_file from ftp://ftp.cmegroup.com/span/data/cme/ to C:\git\GetCME\Downloads\. (The remote server returned an error: (550) File unavailable (e.g., file not found, no access).)
+2015-11-06 15:57:20 ERROR unzipping no_such_file from ftp://ftp.cmegroup.com/span/data/cme/ to C:\git\GetCME\Downloads\. (Could not find file 'C:\git\GetCME\Downloads\no_such_file'.)

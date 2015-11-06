@@ -1,0 +1,8 @@
+C:\git\GetCME\GetCME\bin\Debug\GetCME.exe.config
+C:\git\GetCME\GetCME\bin\Debug\GetCME.exe
+C:\git\GetCME\GetCME\bin\Debug\GetCME.pdb
+C:\git\GetCME\GetCME\obj\Debug\GetCME.csprojResolveAssemblyReference.cache
+C:\git\GetCME\GetCME\obj\Debug\GetCME.exe
+C:\git\GetCME\GetCME\obj\Debug\GetCME.pdb
+C:\git\GetCME\GetCME\bin\Debug\Ionic.Zip.dll
+C:\git\GetCME\GetCME\bin\Debug\Ionic.Zip.xml
