@@ -15,16 +15,22 @@ namespace GetCME
         // Password for the remote user
         private string _remotePass;
         private string _downloadfolder;
-        private string _logfolder;
+        private string _logpath;
         private byte[] downloadedData;
-        public FTPClient(string remoteHost, string remoteUser, string remotePassword, string downloadfolder, string logfolder)
+
+        public FTPClient(string remoteHost, string remoteUser, string remotePassword, string logpath)
         {
             _remoteHost = remoteHost;
             _remoteUser = remoteUser;
             _remotePass = remotePassword;
-            _downloadfolder = downloadfolder;
-            _logfolder = logfolder;
+            _logpath = logpath;
         }
+        public FTPClient(string remoteHost, string remoteUser, string remotePassword, string downloadfolder, string logpath) 
+            : this(remoteHost, remoteUser, remotePassword, logpath)
+        {
+            _downloadfolder = downloadfolder;
+        }
+
         public List<string> DirectoryListing()
         {
             FtpWebRequest request = (FtpWebRequest)WebRequest.Create(_remoteHost);
@@ -74,8 +80,6 @@ namespace GetCME
             request.KeepAlive = true; //don't close the connection
 
             int dataLength = (int)request.GetResponse().ContentLength;
-
-            Console.WriteLine("Downloading File " + fileToDownload + " from " + _remoteHost);
 
             //Now get the actual data
             request = FtpWebRequest.Create(_remoteHost + fileToDownload) as FtpWebRequest;
@@ -128,17 +132,43 @@ namespace GetCME
             response.Close();
         }
 
+        public string DownloadingSummary(string filename, string host, string downloadDestination)
+        {
+            return "Downloading: " + filename + " from " + host + " to " + downloadDestination;
+        }
+        public string DownloadedSummary(string filename, string host, string downloadDestination)
+        {
+            return "Completed download: " + filename + " from " + host + " to " + downloadDestination;
+        }
+        public string DownloadErrorSummary(string filename, string host, string downloadDestination, string message)
+        {
+            return "Error downloading " + filename + " from " + host + " to " + downloadDestination + ". (" + message + ")";
+        }
+        public string UnzipSummary(string filename, string dataDestination)
+        {
+            return "Unzipped " + filename + " to " + dataDestination;
+        }
+        public string UnzipErrorSummary(string filename, string host, string dataDestination, string message)
+        {
+            return "ERROR unzipping " + filename + " from " + host + " to " + dataDestination + ". (" + message + ")";
+        }
+
+
+        public void Download(string downloadfolder, string fileToDownload)
+        {
+            _downloadfolder = downloadfolder;
+            Download(fileToDownload);
+        }
+
         
         public void WriteDataToFile(string writefile)
         {
             if (downloadedData != null && downloadedData.Length != 0)
             {
-                Console.WriteLine("Saving Data...");
                 //Write the bytes to a file
                 FileStream newFile = new FileStream(Path.Combine(_downloadfolder, writefile), FileMode.Create);
                 newFile.Write(downloadedData, 0, downloadedData.Length);
-                newFile.Close();
-                Console.WriteLine("Zip file: '" + writefile + "' written to " + _downloadfolder);
+                newFile.Close();                
             }
             else
             {
@@ -146,24 +176,34 @@ namespace GetCME
             }
         }
 
-        public void Log(string logtext, string logfilename)
+        public void Log(string logtext)
         {
-            folderCheckAndCreate(_logfolder);
+            string logfolder = Utility.RemoveFilenameFromFilepath(_logpath);
+            folderCheckAndCreate(logfolder);
             string timeString = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            using (StreamWriter w = File.AppendText(Path.Combine(_logfolder, logfilename)))
+            using (StreamWriter w = File.AppendText(_logpath))
             {
                 w.WriteLine(timeString + " " + logtext);
             }
+            Console.WriteLine(logtext);
         }
 
         public void Unzip(string zipFileName, string zipSourceFolder, string unzipDestinationFolder)
         {
             folderCheckAndCreate(unzipDestinationFolder);
+
+
             // allow for the possibility that there are multiple files in the zip archive
             using (ZipFile zip = ZipFile.Read(Path.Combine(zipSourceFolder, zipFileName)))
             {
                 foreach (ZipEntry entry in zip)
                 {
+                    string filePath = Path.Combine(unzipDestinationFolder, entry.FileName);
+                    if (File.Exists(filePath))
+                    {
+                        File.Delete(filePath);
+                        Log("Deleted pre-existing version of file: " + entry.FileName + " in " + unzipDestinationFolder);
+                    }
                     entry.Extract(unzipDestinationFolder);
                 }
             }
