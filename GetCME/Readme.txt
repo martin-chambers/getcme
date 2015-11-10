@@ -1,6 +1,8 @@
 ﻿GetCME.exe usage
 ----------------
 
+The program requires .net 4.5 installed on the computer to run. 
+
 The 4 required files are:
 
 getcme.exe

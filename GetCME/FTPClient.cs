@@ -166,9 +166,11 @@ namespace GetCME
             if (downloadedData != null && downloadedData.Length != 0)
             {
                 //Write the bytes to a file
-                FileStream newFile = new FileStream(Path.Combine(_downloadfolder, writefile), FileMode.Create);
-                newFile.Write(downloadedData, 0, downloadedData.Length);
-                newFile.Close();                
+                using (FileStream newFile = new FileStream(Path.Combine(_downloadfolder, writefile), FileMode.Create))
+                {
+                    newFile.Write(downloadedData, 0, downloadedData.Length);
+                }
+                
             }
             else
             {
@@ -188,13 +190,12 @@ namespace GetCME
             Console.WriteLine(logtext);
         }
 
-        public void Unzip(string zipFileName, string zipSourceFolder, string unzipDestinationFolder)
+        public void Unzip(string zipFileName, string zipSourceFolder, string unzipDestinationFolder, bool deleteZips)
         {
             folderCheckAndCreate(unzipDestinationFolder);
-
-
+            string zipFilePath = Path.Combine(zipSourceFolder, zipFileName);
             // allow for the possibility that there are multiple files in the zip archive
-            using (ZipFile zip = ZipFile.Read(Path.Combine(zipSourceFolder, zipFileName)))
+            using (ZipFile zip = ZipFile.Read(zipFilePath))
             {
                 foreach (ZipEntry entry in zip)
                 {
@@ -204,9 +205,13 @@ namespace GetCME
                         File.Delete(filePath);
                         Log("Deleted pre-existing version of file: " + entry.FileName + " in " + unzipDestinationFolder);
                     }
-                    entry.Extract(unzipDestinationFolder);
+                    entry.Extract(unzipDestinationFolder);                    
                 }
             }
+            if (deleteZips)
+            {
+                File.Delete(zipFilePath);
+            }            
         }
 
     }

@@ -12,6 +12,7 @@ namespace GetCME
     public class FTPClientRunner
     {
         public string InputFile { get; set; }
+        private NameValueCollection CMEConfig = ConfigurationManager.GetSection("CMEConfig") as NameValueCollection;
         public FTPClientRunner(string inputFile)
         {
             InputFile = inputFile;
@@ -19,7 +20,6 @@ namespace GetCME
         public void Run()
         {
             // initialise FTPClient from config
-            var CMEConfig = ConfigurationManager.GetSection("CMEConfig") as NameValueCollection;
             string host = CMEConfig["Host"];
             string approot = CMEConfig["AppRoot"];
             string downloadPath = Path.Combine(approot, CMEConfig["DownloadPath"]);
@@ -29,48 +29,54 @@ namespace GetCME
             string logpath = Path.Combine(logfolder, logfile);
             string user = CMEConfig["User"];
             string password = CMEConfig["Password"];
-
-            FTPClient client = new FTPClient(host, user, password, logpath);
-
             List<string> lines = File.ReadAllLines(InputFile).ToList();
-            List<string> availableFiles = client.DirectoryListing();
-            foreach (string line in lines)
+            List<string> urls = lines.Select(x => x.Substring(0, x.IndexOf(","))).ToList();
+            List<string> distinctUrls = urls.Distinct().ToList();
+            foreach (string url in distinctUrls)
             {
-                int commaPosition = line.IndexOf(",");
-                string basedate = line.Substring(0, commaPosition);
-                string downloadDestination = Path.Combine(downloadPath, basedate);
-                string dataDestination = Path.Combine(dataPath, basedate);
-                string filename = line.Substring(commaPosition+1);
-                // FTP download
-                try
+                FTPClient client = new FTPClient(url, user, password, logpath);
+                List<string> availableFiles = client.DirectoryListing();
+                foreach (string line in lines.Where(x => x.Substring(0, x.IndexOf(",")) == url))
                 {
-                    if (availableFiles.Contains(filename))
+                    int comma1 = line.IndexOf(",");
+                    int comma2 = line.LastIndexOf(",");
+                    string basedate = line.Substring(comma1 + 1, (comma2 - comma1) - 1);
+                    string downloadDestination = Path.Combine(downloadPath, basedate);
+                    string dataDestination = Path.Combine(dataPath, basedate);
+                    string filename = line.Substring(comma2 + 1);
+                    // FTP download
+                    try
                     {
-                        client.Log(client.DownloadingSummary(filename, host, downloadDestination));
-                        client.Download(downloadDestination, filename);                        
-                        client.Log(client.DownloadedSummary(filename, host, downloadDestination));                        
+                        if (availableFiles.Contains(filename))
+                        {
+                            client.Log(client.DownloadingSummary(filename, url, downloadDestination));
+                            client.Download(downloadDestination, filename);
+                            client.Log(client.DownloadedSummary(filename, url, downloadDestination));
+                        }
+                        else
+                        {
+                            client.Log("Input error: " + filename + " was not found in " + url);
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        client.Log("Input error: " + filename + " was not found in " + downloadDestination);
+                        client.Log(client.DownloadErrorSummary(filename, host, downloadDestination, ex.Message));
                     }
+                    // Unzip
+                    try
+                    {
+                        bool deleteZips = Convert.ToBoolean(CMEConfig["DeleteZips"]);
+                        client.Unzip(filename, downloadDestination, dataDestination, deleteZips);
+                        client.Log(client.UnzipSummary(filename, dataDestination));
+                    }
+                    catch (Exception ex)
+                    {
+                        client.Log(client.UnzipErrorSummary(filename, host, dataDestination, ex.Message));
+                    }
+
                 }
-                catch (Exception ex)
-                {
-                    client.Log(client.DownloadErrorSummary(filename, host, downloadDestination, ex.Message));
-                }
-                // Unzip
-                try
-                {
-                    client.Unzip(filename, downloadDestination, dataDestination);
-                    client.Log(client.UnzipSummary(filename, dataDestination));
-                }
-                catch (Exception ex)
-                {
-                    client.Log(client.UnzipErrorSummary(filename, host, dataDestination, ex.Message));
-                }
-            }
-            client.Log("Program execution complete");
+            }            
+            Console.WriteLine("Program execution complete");
         }
     }
 }
