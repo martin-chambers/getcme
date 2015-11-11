@@ -15,8 +15,7 @@ namespace GetCME
 
         public FTPClientRunner(string inputFile)
         {
-            InputFile = inputFile;
-
+            InputFile = inputFile;            
         }
 
         private string getUrlForFile(string fileToSearch, string url, string user, string password, FTPClient client)
@@ -49,21 +48,23 @@ namespace GetCME
             NameValueCollection CMEConfig = ConfigurationManager.GetSection("CMEConfig") as NameValueCollection;
             string host = CMEConfig["Host"];
             string approot = CMEConfig["AppRoot"];
-            string downloadPath = Path.Combine(approot, CMEConfig["DownloadPath"]);
-            string dataPath = Path.Combine(approot, CMEConfig["WorkingFolder"]);
-            string logfolder = Path.Combine(approot, CMEConfig["LogFolder"]);
+            string workingpath = CMEConfig["WorkFolder"];
+            string downloadfolder = Path.Combine(workingpath, CMEConfig["DownloadFolder"]);
+            string datafolder = CMEConfig["DataFolder"];
+            string logfolder = Path.Combine(workingpath, CMEConfig["LogFolder"]);
             string logfile = CMEConfig["LogFile"];
             string logpath = Path.Combine(logfolder, logfile);
             string user = CMEConfig["User"];
             string password = CMEConfig["Password"];
-            FTPClient client = new FTPClient(user, password, downloadPath, logpath);
+            List<string> folderlist = new List<string>(CMEConfig["NewFolderList"].Split(new char[] { ';' }));
+            FTPClient client = new FTPClient(user, password, downloadfolder, logpath);
             List<string> lines = File.ReadAllLines(InputFile).ToList();
             foreach (string line in lines)
             {
                 int comma = line.IndexOf(",");
                 string basedate = line.Substring(0, comma);
-                string downloadDestination = Path.Combine(downloadPath, basedate);
-                string dataDestination = Path.Combine(dataPath, basedate);
+                string downloadDestination = Path.Combine(downloadfolder, basedate);
+                string dataDestination = Path.Combine(datafolder, basedate);
                 string filename = line.Substring(comma + 1);
                 string url = getUrlForFile(filename, host, user, password, client);
                 if (url == "")
@@ -87,7 +88,7 @@ namespace GetCME
                     try
                     {
                         bool deleteZips = Convert.ToBoolean(CMEConfig["DeleteZips"]);
-                        client.Unzip(filename, downloadDestination, dataDestination, deleteZips);
+                        client.Unzip(filename, downloadDestination, dataDestination, deleteZips, folderlist);
                         client.Log(client.UnzipSummary(filename, dataDestination));
                     }
                     catch (Exception ex)
@@ -97,7 +98,10 @@ namespace GetCME
 
                 }
             }
+            if()
             Console.WriteLine("Program execution complete");
+            Console.WriteLine("Press any key to continue ...");
+            Console.ReadKey();
         }
     }
 }

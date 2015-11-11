@@ -23,10 +23,11 @@ namespace GetCME
         }
         public FTPClient(string remoteUser, string remotePassword)
         {
+            // check for existence of working folder
             _remoteUser = remoteUser;
             _remotePass = remotePassword;
         }
-        public FTPClient(string remoteUser, string remotePassword, string downloadfolder, string logpath) 
+        public FTPClient(string remoteUser, string remotePassword, string downloadfolder, string logpath)
             : this(remoteUser, remotePassword, logpath)
         {
             _downloadfolder = downloadfolder;
@@ -35,12 +36,12 @@ namespace GetCME
         public List<string> DirectoryListing(string url)
         {
             FtpWebRequest request = (FtpWebRequest)WebRequest.Create(url);
-            request.Method = WebRequestMethods.Ftp.ListDirectory;            
+            request.Method = WebRequestMethods.Ftp.ListDirectory;
             request.Credentials = new NetworkCredential(_remoteUser, _remotePass);
             List<string> result = new List<string>();
             using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
             {
-                Stream responseStream = response.GetResponseStream();              
+                Stream responseStream = response.GetResponseStream();
                 using (StreamReader reader = new StreamReader(responseStream))
                 {
                     while (!reader.EndOfStream)
@@ -53,26 +54,32 @@ namespace GetCME
             return result;
         }
 
-        private void folderCheckAndCreate(string path)
+        private bool folderCheckAndCreate(string path)
         {
+            bool rv = false;
             bool exists = Directory.Exists(path);
             if (!exists)
             {
                 Directory.CreateDirectory(path);
+                rv = true;
             }
+            return rv;
         }
-        private void folderCheckAndDelete(string path)
+        private bool folderCheckAndDelete(string path)
         {
+            bool rv = false;
             bool exists = Directory.Exists(path);
             if (exists)
             {
                 Directory.Delete(path, true);
+                rv = true;
             }
+            return rv;
         }
 
         public void Download(string fileToDownload, string url)
         {
-            if(_downloadfolder == "")
+            if (_downloadfolder == "")
             {
                 throw new InvalidOperationException("The download folder has not been intialised");
             }
@@ -138,7 +145,7 @@ namespace GetCME
                 reader.Close();
             }
             WriteDataToFile(fileToDownload);
-            response.Close();            
+            response.Close();
         }
 
         public string DownloadingSummary(string filename, string host, string downloadDestination)
@@ -169,7 +176,7 @@ namespace GetCME
             Download(fileToDownload, url);
         }
 
-        
+
         public void WriteDataToFile(string writefile)
         {
             if (downloadedData != null && downloadedData.Length != 0)
@@ -179,7 +186,7 @@ namespace GetCME
                 {
                     newFile.Write(downloadedData, 0, downloadedData.Length);
                 }
-                
+
             }
             else
             {
@@ -199,9 +206,15 @@ namespace GetCME
             Console.WriteLine(logtext);
         }
 
-        public void Unzip(string zipFileName, string zipSourceFolder, string unzipDestinationFolder, bool deleteZips)
+        public void Unzip(string zipFileName, string zipSourceFolder, string unzipDestinationFolder, bool deleteZips, List<string> folderList)
         {
+
             folderCheckAndCreate(unzipDestinationFolder);
+            foreach (string folder in folderList)
+            {
+                string newFolder = Path.Combine(unzipDestinationFolder, folder);
+                folderCheckAndCreate(newFolder);
+            }
             string zipFilePath = Path.Combine(zipSourceFolder, zipFileName);
             string destinationFilePath = Path.Combine(unzipDestinationFolder, zipFileName).Replace(".zip", "");
             if (File.Exists(destinationFilePath))
@@ -214,7 +227,7 @@ namespace GetCME
                 // allow for the possibility that there are multiple files in the zip archive
                 foreach (ZipEntry entry in zip)
                 {
-                    entry.Extract(unzipDestinationFolder);                                        
+                    entry.Extract(unzipDestinationFolder);
                 }
             }
             if (deleteZips)

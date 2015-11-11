@@ -16,15 +16,17 @@ These are supplied in a zip file - GETCME.zip.
 
 2. create suitable entries in the configuration file. Here are some example entries:
 
-    <add key="AppRoot" value="C:\GetCME" />
+	<add key="AppRoot" value="C:\Git\GetCME" />
+    <add key="WorkingFolder" value="C:\GetCME" />
     <add key="ConfigFile" value="config.txt" />
     <add key="Host" value="ftp://ftp.cmegroup.com/span/data/cme/" />
-    <add key="DownloadPath" value="Downloads" />
-    <add key="WorkingFolder" value="Data" />
+    <add key="DownloadFolder" value="Downloads" />
+    <add key="DataFolder" value="C:\GetCME\Data" />
     <add key="LogFolder" value="Log" />
     <add key="User" value="anonymous" />
     <add key="Password" value="" />
     <add key="LogFile" value="GetCME.log" />
+    <add key="DeleteZips" value="true" />
 
 	The only entries which you might need to change are the AppRoot, Host, User and Password entries. The current user and password settings
 	work for the host name given above. If in future, CME provides an FTP connection which does not use the 'anonymous' user, the above 
