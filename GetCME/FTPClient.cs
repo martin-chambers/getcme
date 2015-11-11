@@ -204,17 +204,6 @@ namespace GetCME
             folderCheckAndCreate(unzipDestinationFolder);
             string zipFilePath = Path.Combine(zipSourceFolder, zipFileName);
             string destinationFilePath = Path.Combine(unzipDestinationFolder, zipFileName).Replace(".zip", "");
-            try
-            {
-                using (Stream stream = new FileStream(zipFilePath, FileMode.Open))
-                {
-                    // File/Stream manipulating code here
-                }
-            }
-            catch
-            {
-                Log(zipFileName + " is in use");
-            }
             if (File.Exists(destinationFilePath))
             {
                 File.Delete(destinationFilePath);

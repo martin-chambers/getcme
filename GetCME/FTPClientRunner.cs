@@ -29,7 +29,7 @@ namespace GetCME
             }
             else
             {
-                // look in all subdirectories
+                // look in all subdirectories recursively
                 foreach (string fileEntry in fileEntries.Where(x => x.Contains(".") == false))
                 {
                     if (foundUrl == "")
