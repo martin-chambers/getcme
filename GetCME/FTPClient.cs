@@ -8,8 +8,6 @@ namespace GetCME
 {
     public class FTPClient
     {
-        // The hostname or IP address of the FTP server
-        private string _remoteHost;
         // The remote username
         private string _remoteUser;
         // Password for the remote user
@@ -18,34 +16,40 @@ namespace GetCME
         private string _logpath;
         private byte[] downloadedData;
 
-        public FTPClient(string remoteHost, string remoteUser, string remotePassword, string logpath)
+        public FTPClient(string remoteUser, string remotePassword, string logpath)
+            : this(remoteUser, remotePassword)
         {
-            _remoteHost = remoteHost;
-            _remoteUser = remoteUser;
-            _remotePass = remotePassword;
             _logpath = logpath;
         }
-        public FTPClient(string remoteHost, string remoteUser, string remotePassword, string downloadfolder, string logpath) 
-            : this(remoteHost, remoteUser, remotePassword, logpath)
+        public FTPClient(string remoteUser, string remotePassword)
+        {
+            _remoteUser = remoteUser;
+            _remotePass = remotePassword;
+        }
+        public FTPClient(string remoteUser, string remotePassword, string downloadfolder, string logpath) 
+            : this(remoteUser, remotePassword, logpath)
         {
             _downloadfolder = downloadfolder;
         }
 
-        public List<string> DirectoryListing()
+        public List<string> DirectoryListing(string url)
         {
-            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(_remoteHost);
-            request.Method = WebRequestMethods.Ftp.ListDirectory;
+            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(url);
+            request.Method = WebRequestMethods.Ftp.ListDirectory;            
             request.Credentials = new NetworkCredential(_remoteUser, _remotePass);
-            FtpWebResponse response = (FtpWebResponse)request.GetResponse();
-            Stream responseStream = response.GetResponseStream();
-            StreamReader reader = new StreamReader(responseStream);
             List<string> result = new List<string>();
-            while (!reader.EndOfStream)
+            using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
             {
-                result.Add(reader.ReadLine());
+                Stream responseStream = response.GetResponseStream();              
+                using (StreamReader reader = new StreamReader(responseStream))
+                {
+                    while (!reader.EndOfStream)
+                    {
+                        result.Add(reader.ReadLine());
+                    }
+                }
             }
-            reader.Close();
-            response.Close();
+            //response.Close();
             return result;
         }
 
@@ -66,23 +70,27 @@ namespace GetCME
             }
         }
 
-        public void Download(string fileToDownload)
+        public void Download(string fileToDownload, string url)
         {
+            if(_downloadfolder == "")
+            {
+                throw new InvalidOperationException("The download folder has not been intialised");
+            }
+
             // check the download folder exists and if not, create it
             folderCheckAndCreate(_downloadfolder);
 
-            //Get the file size first (for progress tracking)
-            FtpWebRequest request = FtpWebRequest.Create(_remoteHost + fileToDownload) as FtpWebRequest;
+            FtpWebRequest request = FtpWebRequest.Create(url + fileToDownload) as FtpWebRequest;
             request.Method = WebRequestMethods.Ftp.GetFileSize;
             request.Credentials = new NetworkCredential(_remoteUser, _remotePass);
             request.UsePassive = true;
             request.UseBinary = true;
             request.KeepAlive = true; //don't close the connection
 
-            int dataLength = (int)request.GetResponse().ContentLength;
+            int dataLength = (int)request.GetResponse().ContentLength;  // could use this later for progress-checking
 
             //Now get the actual data
-            request = FtpWebRequest.Create(_remoteHost + fileToDownload) as FtpWebRequest;
+            request = FtpWebRequest.Create(url + fileToDownload) as FtpWebRequest;
             request.Method = WebRequestMethods.Ftp.DownloadFile;
             request.Credentials = new NetworkCredential(_remoteUser, _remotePass);
             request.UsePassive = true;
@@ -91,45 +99,46 @@ namespace GetCME
 
             //Streams
             FtpWebResponse response = request.GetResponse() as FtpWebResponse;
-            Stream reader = response.GetResponseStream();
-
-            //Download to memory
-            MemoryStream memStream = new MemoryStream();
-            byte[] buffer = new byte[1024]; //downloads in chunks
-            int i = 0;
-            string comfort = "";
-            while (true)
+            using (Stream reader = response.GetResponseStream())
             {
-                //Try to read the data
-                int bytesRead = reader.Read(buffer, 0, buffer.Length);
-                if (bytesRead == 0)
+
+                //Download to memory
+                using (MemoryStream memStream = new MemoryStream())
                 {
-                    //Nothing was read, finished downloading
-                    break;
-                }
-                else
-                {
-                    if (i % 200 == 0)
+                    byte[] buffer = new byte[1024]; //downloads in chunks
+                    int i = 0;
+                    string comfort = "";
+                    while (true)
                     {
-                        comfort = (i % 400 == 0) ? "\rWorking ...\r" : "\r           \r";
+                        //Try to read the data
+                        int bytesRead = reader.Read(buffer, 0, buffer.Length);
+                        if (bytesRead == 0)
+                        {
+                            //Nothing was read, finished downloading
+                            break;
+                        }
+                        else
+                        {
+                            if (i % 200 == 0)
+                            {
+                                comfort = (i % 400 == 0) ? "\rWorking ...\r" : "\r           \r";
+                            }
+                            // animation!
+                            Console.Write(comfort);
+                            i++;
+                            //Write the downloaded data
+                            memStream.Write(buffer, 0, bytesRead);
+                        }
                     }
-                    // animation!
-                    Console.Write(comfort);
-                    i++;
-                    //Write the downloaded data
-                    memStream.Write(buffer, 0, bytesRead);
+
+                    //Convert the downloaded stream to a byte array
+                    downloadedData = memStream.ToArray();
+                    memStream.Close();
                 }
+                reader.Close();
             }
-
-            //Convert the downloaded stream to a byte array
-            downloadedData = memStream.ToArray();
-
             WriteDataToFile(fileToDownload);
-
-            //Clean up
-            reader.Close();
-            memStream.Close();
-            response.Close();
+            response.Close();            
         }
 
         public string DownloadingSummary(string filename, string host, string downloadDestination)
@@ -148,16 +157,16 @@ namespace GetCME
         {
             return "Unzipped " + filename + " to " + dataDestination;
         }
-        public string UnzipErrorSummary(string filename, string host, string dataDestination, string message)
+        public string UnzipErrorSummary(string filename, string downloadfolder, string dataDestination, string message)
         {
-            return "ERROR unzipping " + filename + " from " + host + " to " + dataDestination + ". (" + message + ")";
+            return "ERROR unzipping " + filename + " from " + downloadfolder + " to " + dataDestination + ". (" + message + ")";
         }
 
 
-        public void Download(string downloadfolder, string fileToDownload)
+        public void Download(string downloadfolder, string fileToDownload, string url)
         {
             _downloadfolder = downloadfolder;
-            Download(fileToDownload);
+            Download(fileToDownload, url);
         }
 
         
@@ -194,25 +203,35 @@ namespace GetCME
         {
             folderCheckAndCreate(unzipDestinationFolder);
             string zipFilePath = Path.Combine(zipSourceFolder, zipFileName);
-            // allow for the possibility that there are multiple files in the zip archive
+            string destinationFilePath = Path.Combine(unzipDestinationFolder, zipFileName).Replace(".zip", "");
+            try
+            {
+                using (Stream stream = new FileStream(zipFilePath, FileMode.Open))
+                {
+                    // File/Stream manipulating code here
+                }
+            }
+            catch
+            {
+                Log(zipFileName + " is in use");
+            }
+            if (File.Exists(destinationFilePath))
+            {
+                File.Delete(destinationFilePath);
+                Log("Deleted pre-existing version of file: " + zipFileName + " in " + unzipDestinationFolder);
+            }
             using (ZipFile zip = ZipFile.Read(zipFilePath))
             {
+                // allow for the possibility that there are multiple files in the zip archive
                 foreach (ZipEntry entry in zip)
                 {
-                    string filePath = Path.Combine(unzipDestinationFolder, entry.FileName);
-                    if (File.Exists(filePath))
-                    {
-                        File.Delete(filePath);
-                        Log("Deleted pre-existing version of file: " + entry.FileName + " in " + unzipDestinationFolder);
-                    }
-                    entry.Extract(unzipDestinationFolder);                    
+                    entry.Extract(unzipDestinationFolder);                                        
                 }
             }
             if (deleteZips)
             {
                 File.Delete(zipFilePath);
-            }            
+            }
         }
-
     }
 }

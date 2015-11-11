@@ -12,14 +12,41 @@ namespace GetCME
     public class FTPClientRunner
     {
         public string InputFile { get; set; }
-        private NameValueCollection CMEConfig = ConfigurationManager.GetSection("CMEConfig") as NameValueCollection;
+
         public FTPClientRunner(string inputFile)
         {
             InputFile = inputFile;
+
         }
+
+        private string getUrlForFile(string fileToSearch, string url, string user, string password, FTPClient client)
+        {
+            string foundUrl = "";
+            List<string> fileEntries = client.DirectoryListing(url);
+            if (fileEntries.Contains(fileToSearch))
+            {
+                return url;
+            }
+            else
+            {
+                // look in all subdirectories
+                foreach (string fileEntry in fileEntries.Where(x => x.Contains(".") == false))
+                {
+                    if (foundUrl == "")
+                    {
+                        foundUrl = getUrlForFile(fileToSearch, url + fileEntry + "/", user, password, client);
+                    }
+                }
+
+            }
+            return foundUrl;
+        }
+
+
         public void Run()
         {
             // initialise FTPClient from config
+            NameValueCollection CMEConfig = ConfigurationManager.GetSection("CMEConfig") as NameValueCollection;
             string host = CMEConfig["Host"];
             string approot = CMEConfig["AppRoot"];
             string downloadPath = Path.Combine(approot, CMEConfig["DownloadPath"]);
@@ -29,34 +56,28 @@ namespace GetCME
             string logpath = Path.Combine(logfolder, logfile);
             string user = CMEConfig["User"];
             string password = CMEConfig["Password"];
+            FTPClient client = new FTPClient(user, password, downloadPath, logpath);
             List<string> lines = File.ReadAllLines(InputFile).ToList();
-            List<string> urls = lines.Select(x => x.Substring(0, x.IndexOf(","))).ToList();
-            List<string> distinctUrls = urls.Distinct().ToList();
-            foreach (string url in distinctUrls)
+            foreach (string line in lines)
             {
-                FTPClient client = new FTPClient(url, user, password, logpath);
-                List<string> availableFiles = client.DirectoryListing();
-                foreach (string line in lines.Where(x => x.Substring(0, x.IndexOf(",")) == url))
+                int comma = line.IndexOf(",");
+                string basedate = line.Substring(0, comma);
+                string downloadDestination = Path.Combine(downloadPath, basedate);
+                string dataDestination = Path.Combine(dataPath, basedate);
+                string filename = line.Substring(comma + 1);
+                string url = getUrlForFile(filename, host, user, password, client);
+                if (url == "")
                 {
-                    int comma1 = line.IndexOf(",");
-                    int comma2 = line.LastIndexOf(",");
-                    string basedate = line.Substring(comma1 + 1, (comma2 - comma1) - 1);
-                    string downloadDestination = Path.Combine(downloadPath, basedate);
-                    string dataDestination = Path.Combine(dataPath, basedate);
-                    string filename = line.Substring(comma2 + 1);
+                    client.Log("Input error: " + filename + " was not found in " + url + " or any of the subfolders");
+                }
+                else
+                {
                     // FTP download
                     try
                     {
-                        if (availableFiles.Contains(filename))
-                        {
-                            client.Log(client.DownloadingSummary(filename, url, downloadDestination));
-                            client.Download(downloadDestination, filename);
-                            client.Log(client.DownloadedSummary(filename, url, downloadDestination));
-                        }
-                        else
-                        {
-                            client.Log("Input error: " + filename + " was not found in " + url);
-                        }
+                        client.Log(client.DownloadingSummary(filename, url, downloadDestination));
+                        client.Download(downloadDestination, filename, url);
+                        client.Log(client.DownloadedSummary(filename, url, downloadDestination));
                     }
                     catch (Exception ex)
                     {
@@ -71,11 +92,11 @@ namespace GetCME
                     }
                     catch (Exception ex)
                     {
-                        client.Log(client.UnzipErrorSummary(filename, host, dataDestination, ex.Message));
+                        client.Log(client.UnzipErrorSummary(filename, downloadDestination, dataDestination, ex.Message));
                     }
 
                 }
-            }            
+            }
             Console.WriteLine("Program execution complete");
         }
     }

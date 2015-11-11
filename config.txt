@@ -1,4 +1,5 @@
-ftp://ftp.cmegroup.com/span/data/cme/2013/201303/,20130228,cme.20130328.s.pa2.zip
-ftp://ftp.cmegroup.com/span/data/cme/2013/201303/,20130328,cme.20130328.s.pa2.zip
-ftp://ftp.cmegroup.com/span/data/cme/2013/201304/,20130328,cme.20130430.s.pa2.zip
-ftp://ftp.cmegroup.com/span/data/cme/2013/201306/,20130328,cme.20130628.s.pa2.zip
+20130131,cme.20130131.s.pa2.zip
+20130131,cme.20130228.s.pa2.zip
+20130131,cme.20140131.s.pa2.zip
+20130228,cme.20130228.s.pa2.zip
+20130228,cme.20130328.s.pa2.zip
