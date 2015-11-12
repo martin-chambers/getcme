@@ -41,6 +41,38 @@ namespace GetCME
             return foundUrl;
         }
 
+        public class TDateSet
+        {
+            public DateTime T00 { get; set; }
+            public DateTime T01 { get; set; }
+            public DateTime T03 { get; set; }
+            public DateTime T06 { get; set; }
+            public DateTime T12 { get; set; }
+
+            public TDateSet(DateTime t0)
+            {
+
+                // days to add must n
+                T00 = t0.EndOfMonth();
+                // T01 = T00 plus 29 days and go to end of month
+                T01 = T00.AddDays(29).EndOfMonth();
+                // T03 = T01 plus 90 days and go to end of month
+                T03 = T01.AddDays(90).EndOfMonth();
+                
+            }
+
+            private DateTime endOfMonth(DateTime d)
+            {
+                return new DateTime(d.Year, d.Month, DateTime.DaysInMonth(d.Year, d.Month));
+            }
+        }
+
+        private List<DateTime> getTDates(DateTime T0)
+        {
+            List<DateTime> tdates = new List<DateTime>();
+
+        }
+
 
         public void Run()
         {
