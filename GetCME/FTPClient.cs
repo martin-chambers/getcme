@@ -212,7 +212,13 @@ namespace GetCME
             folderCheckAndCreate(unzipDestinationFolder);
             foreach (string folder in folderList)
             {
-                string newFolder = Path.Combine(unzipDestinationFolder, folder);
+                string folderToInsert = folder;
+                if(folder.Contains("/"))
+                {
+                    string[] hierarchicalfolder = folder.Split(new char[] { '/' });
+                    folderToInsert = Path.Combine(hierarchicalfolder);
+                }
+                string newFolder = Path.Combine(unzipDestinationFolder, folderToInsert);
                 folderCheckAndCreate(newFolder);
             }
             string zipFilePath = Path.Combine(zipSourceFolder, zipFileName);

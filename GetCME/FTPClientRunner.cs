@@ -15,7 +15,7 @@ namespace GetCME
 
         public FTPClientRunner(string inputFile)
         {
-            InputFile = inputFile;            
+            InputFile = inputFile;
         }
 
         private string getUrlForFile(string fileToSearch, string url, string user, string password, FTPClient client)
@@ -41,42 +41,16 @@ namespace GetCME
             return foundUrl;
         }
 
-        public class TDateSet
+        private static int stringToInt(string i)
         {
-            public DateTime T00 { get; set; }
-            public DateTime T01 { get; set; }
-            public DateTime T03 { get; set; }
-            public DateTime T06 { get; set; }
-            public DateTime T12 { get; set; }
-
-            public TDateSet(DateTime t0)
-            {
-
-                // days to add must n
-                T00 = t0.EndOfMonth();
-                // T01 = T00 plus 29 days and go to end of month
-                T01 = T00.AddDays(29).EndOfMonth();
-                // T03 = T01 plus 90 days and go to end of month
-                T03 = T01.AddDays(90).EndOfMonth();
-                
-            }
-
-            private DateTime endOfMonth(DateTime d)
-            {
-                return new DateTime(d.Year, d.Month, DateTime.DaysInMonth(d.Year, d.Month));
-            }
+            return Convert.ToInt32(i);
         }
 
-        private List<DateTime> getTDates(DateTime T0)
-        {
-            List<DateTime> tdates = new List<DateTime>();
-
-        }
 
 
         public void Run()
         {
-            // initialise FTPClient from config
+            // get FTPClient config values
             NameValueCollection CMEConfig = ConfigurationManager.GetSection("CMEConfig") as NameValueCollection;
             string host = CMEConfig["Host"];
             string approot = CMEConfig["AppRoot"];
@@ -88,49 +62,90 @@ namespace GetCME
             string logpath = Path.Combine(logfolder, logfile);
             string user = CMEConfig["User"];
             string password = CMEConfig["Password"];
+
+            // get details of fileformat. Must have length 2, to give a pre-date and post-date part 
+            string[] fileformat = CMEConfig["FileFormat"].Split(new char[] { ';' });
+            if (fileformat.Length != 2)
+            {
+                throw new InvalidOperationException("Configuration problem: file format is unexpected");
+            }
+            string firstFilePart = fileformat[0];
+            string lastFilePart = fileformat[1];
+
+            // get date search logic values 
+            int[] months =
+                Array.ConvertAll(
+                    CMEConfig["TDates"].Split(new char[] { ';' }),
+                    new Converter<string, int>(stringToInt));
+            int decrementLimit = Convert.ToInt32(CMEConfig["DateDecrementLimit"]);
+            // get subfolders to create in basedate folder
             List<string> folderlist = new List<string>(CMEConfig["NewFolderList"].Split(new char[] { ';' }));
+
+            // create FTP client
             FTPClient client = new FTPClient(user, password, downloadfolder, logpath);
+
+            // read the config file
             List<string> lines = File.ReadAllLines(InputFile).ToList();
             foreach (string line in lines)
             {
-                int comma = line.IndexOf(",");
-                string basedate = line.Substring(0, comma);
-                string downloadDestination = Path.Combine(downloadfolder, basedate);
-                string dataDestination = Path.Combine(datafolder, basedate);
-                string filename = line.Substring(comma + 1);
-                string url = getUrlForFile(filename, host, user, password, client);
-                if (url == "")
+                string basedate = line;
+                DateTime startdate = new DateTime(
+                    Convert.ToInt32(basedate.Substring(0, 4)),
+                    Convert.ToInt32(basedate.Substring(4, 2)),
+                    Convert.ToInt32(basedate.Substring(6, 2))
+                );
+                TDateSet tdates = new TDateSet(startdate, months);
+                for (int i = 0; i < tdates.Length; i++)
                 {
-                    client.Log("Input error: " + filename + " was not found in " + url + " or any of the subfolders");
-                }
-                else
-                {
-                    // FTP download
-                    try
+                    string url = "";
+                    string downloadDestination = Path.Combine(downloadfolder, basedate);
+                    string dataDestination = Path.Combine(datafolder, basedate);
+                    DateTime searchDate = tdates.Dates[i];
+                    string filename = "";
+                    int d = 0;
+                    while (url == "" && d <= decrementLimit)
                     {
-                        client.Log(client.DownloadingSummary(filename, url, downloadDestination));
-                        client.Download(downloadDestination, filename, url);
-                        client.Log(client.DownloadedSummary(filename, url, downloadDestination));
+                        filename = firstFilePart + searchDate.ToString("yyyyMMdd") + lastFilePart;
+                        url = getUrlForFile(filename, host, user, password, client);
+                        if(url == "")
+                        {
+                            client.Log("Could not find file " + filename + ". Decrementing date ...");
+                        }
+                        searchDate = searchDate.Decrement();
+                        d++;
                     }
-                    catch (Exception ex)
+                    // still not found ?
+                    if (url == "")
                     {
-                        client.Log(client.DownloadErrorSummary(filename, host, downloadDestination, ex.Message));
+                        client.Log("Input error: " + filename + " was not found in " + url + " or any of the subfolders");
                     }
-                    // Unzip
-                    try
+                    else
                     {
-                        bool deleteZips = Convert.ToBoolean(CMEConfig["DeleteZips"]);
-                        client.Unzip(filename, downloadDestination, dataDestination, deleteZips, folderlist);
-                        client.Log(client.UnzipSummary(filename, dataDestination));
+                        // FTP download
+                        try
+                        {
+                            client.Log(client.DownloadingSummary(filename, url, downloadDestination));
+                            client.Download(downloadDestination, filename, url);
+                            client.Log(client.DownloadedSummary(filename, url, downloadDestination));
+                        }
+                        catch (Exception ex)
+                        {
+                            client.Log(client.DownloadErrorSummary(filename, host, downloadDestination, ex.Message));
+                        }
+                        // Unzip
+                        try
+                        {
+                            bool deleteZips = Convert.ToBoolean(CMEConfig["DeleteZips"]);
+                            client.Unzip(filename, downloadDestination, dataDestination, deleteZips, folderlist);
+                            client.Log(client.UnzipSummary(filename, dataDestination));
+                        }
+                        catch (Exception ex)
+                        {
+                            client.Log(client.UnzipErrorSummary(filename, downloadDestination, dataDestination, ex.Message));
+                        }
                     }
-                    catch (Exception ex)
-                    {
-                        client.Log(client.UnzipErrorSummary(filename, downloadDestination, dataDestination, ex.Message));
-                    }
-
                 }
             }
-            if()
             Console.WriteLine("Program execution complete");
             Console.WriteLine("Press any key to continue ...");
             Console.ReadKey();
