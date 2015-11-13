@@ -41,9 +41,17 @@ namespace GetCME
             }
             DateTime start = basedate;
             DateTime startIncremented = start.AddMonths(monthIncrement);
-            // adjust for end-of-month
-            int day = DateTime.DaysInMonth(startIncremented.Year, startIncremented.Month);
-            return new DateTime(startIncremented.Year, startIncremented.Month, day);
+            if (monthIncrement == 0)
+            {
+                // basedate
+                return startIncremented;
+            }
+            else
+            {
+                // adjust for end-of-month
+                int day = DateTime.DaysInMonth(startIncremented.Year, startIncremented.Month);
+                return new DateTime(startIncremented.Year, startIncremented.Month, day);
+            }
         }
 
         public static DateTime Decrement(this DateTime value)

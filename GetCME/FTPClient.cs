@@ -206,21 +206,21 @@ namespace GetCME
             Console.WriteLine(logtext);
         }
 
-        public void Unzip(string zipFileName, string zipSourceFolder, string unzipDestinationFolder, bool deleteZips, List<string> folderList)
+        public void Unzip(string zipFileName, string zipSourceFolder, string dataFolder, string unzipDestinationFolder, bool deleteZips, List<string> folderList)
         {
 
-            folderCheckAndCreate(unzipDestinationFolder);
             foreach (string folder in folderList)
             {
                 string folderToInsert = folder;
-                if(folder.Contains("/"))
+                if (folder.Contains("/"))
                 {
                     string[] hierarchicalfolder = folder.Split(new char[] { '/' });
                     folderToInsert = Path.Combine(hierarchicalfolder);
                 }
-                string newFolder = Path.Combine(unzipDestinationFolder, folderToInsert);
+                string newFolder = Path.Combine(dataFolder, folderToInsert);
                 folderCheckAndCreate(newFolder);
             }
+            folderCheckAndCreate(unzipDestinationFolder); // should already be there if it's in the new folder list
             string zipFilePath = Path.Combine(zipSourceFolder, zipFileName);
             string destinationFilePath = Path.Combine(unzipDestinationFolder, zipFileName).Replace(".zip", "");
             if (File.Exists(destinationFilePath))

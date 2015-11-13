@@ -53,6 +53,7 @@ namespace GetCME
             string workingpath = CMEConfig["WorkFolder"];
             string downloadfolder = Path.Combine(workingpath, CMEConfig["DownloadFolder"]);
             string datafolder = CMEConfig["DataFolder"];
+            string datasubfolder = CMEConfig["DataSubFolder"];
             string logfolder = Path.Combine(workingpath, CMEConfig["LogFolder"]);
             string logfile = CMEConfig["LogFile"];
             string logpath = Path.Combine(logfolder, logfile);
@@ -96,13 +97,15 @@ namespace GetCME
                 {
                     string url = "";
                     string downloadDestination = Path.Combine(downloadfolder, basedate);
-                    string dataDestination = Path.Combine(datafolder, basedate);
+                    string dataRoot = Path.Combine(datafolder, basedate);
+                    string dataDestination = Path.Combine(dataRoot, datasubfolder);
                     DateTime searchDate = tdates.Dates[i];
                     string filename = "";
                     int d = 0;
                     while (url == "" && d <= decrementLimit)
                     {
                         filename = firstFilePart + searchDate.ToString("yyyyMMdd") + lastFilePart;
+                        client.Log("Searching for " + filename + " ... ");
                         url = getUrlForFile(filename, host, user, password, client);
                         if(url == "")
                         {
@@ -132,7 +135,7 @@ namespace GetCME
                         // Unzip
                         try
                         {
-                            client.Unzip(filename, downloadDestination, dataDestination, deleteZips, folderlist);
+                            client.Unzip(filename, downloadDestination, dataRoot, dataDestination, deleteZips, folderlist);
                             client.Log(client.UnzipSummary(filename, dataDestination));
                         }
                         catch (Exception ex)
