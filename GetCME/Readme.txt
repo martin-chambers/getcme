@@ -23,6 +23,7 @@ These are supplied in a zip file - GETCME.zip.
     <add key="Host" value="ftp://ftp.cmegroup.com/span/data/cme/" />
     <add key="DownloadFolder" value="Downloads" />
     <add key="DataFolder" value="C:\GetCME\Data" />
+	<add key="DataSubFolder" value="InputDataFiles" />
     <add key="LogFolder" value="Log" />
     <add key="User" value="anonymous" />
     <add key="Password" value="" />
