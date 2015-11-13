@@ -73,7 +73,9 @@ Further explanatory notes
 
 - Download and unzip actions will be recorded in the log.
 
-- If the Data, Downloads and Log folders do not already exist, they will be created in the AppRoot folder.
+- If the Downloads and Log folders do not already exist, they will be created in the working folder.
+
+- If the Data folder does not already exist, it will be created in the fully specified path.
 
 - Subfolders based on the basedate value in config.txt will be created in the Downloads and Data folders.
 
