@@ -35,10 +35,10 @@ These are supplied in a zip file - GETCME.zip.
 
 	Explanation:
 
-	-	The config file (named config.txt above, but you can call it what you want), should be place in the approot folder.
+	-	The config file (named config.txt above, but you can call it what you want), should be placed in the approot folder.
 		It contains a list of basedates in the format yyyyMMdd, e.g.20150930.
 
-	-	The downloads and log folder are subfolders of the work folder. The data folder is given a fully qulaified path as above.
+	-	The downloads and log folder are subfolders of the work folder. The data folder is given a fully qualified path as above.
 
 	-	The User and Password values given above are suitable for the ftp host given above.
 

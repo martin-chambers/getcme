@@ -40,14 +40,10 @@ namespace GetCME
             }
             return foundUrl;
         }
-
         private static int stringToInt(string i)
         {
             return Convert.ToInt32(i);
         }
-
-
-
         public void Run()
         {
             // get FTPClient config values
@@ -62,6 +58,7 @@ namespace GetCME
             string logpath = Path.Combine(logfolder, logfile);
             string user = CMEConfig["User"];
             string password = CMEConfig["Password"];
+            bool deleteZips = Convert.ToBoolean(CMEConfig["DeleteZips"]);
 
             // get details of fileformat. Must have length 2, to give a pre-date and post-date part 
             string[] fileformat = CMEConfig["FileFormat"].Split(new char[] { ';' });
@@ -135,7 +132,6 @@ namespace GetCME
                         // Unzip
                         try
                         {
-                            bool deleteZips = Convert.ToBoolean(CMEConfig["DeleteZips"]);
                             client.Unzip(filename, downloadDestination, dataDestination, deleteZips, folderlist);
                             client.Log(client.UnzipSummary(filename, dataDestination));
                         }
@@ -145,6 +141,10 @@ namespace GetCME
                         }
                     }
                 }
+            }
+            if (deleteZips)
+            {
+                File.Delete(downloadfolder);
             }
             Console.WriteLine("Program execution complete");
             Console.WriteLine("Press any key to continue ...");

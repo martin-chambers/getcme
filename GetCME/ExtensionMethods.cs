@@ -13,7 +13,7 @@ namespace GetCME
             return new DateTime(value.Year, value.Month, DateTime.DaysInMonth(value.Year, value.Month));
         }
 
-        public static DateTime GetTDate(this DateTime T0, params object[] offset)
+        public static DateTime GetTDate(this DateTime basedate, params object[] offset)
         {
             // initially thought of adding a set number of days to each T date to get T01 etc
             // But - days to add must guarantee going into the next intended month but not beyond
@@ -39,14 +39,11 @@ namespace GetCME
             {
                 throw new Exception("Could not interpret argument as an integer offset", ex);
             }
-            DateTime start = T0;
-            int month = (start.Month + monthIncrement) % 12;
-            double d = monthIncrement / 12;
-            int yearAdj1 = (month < start.Month) ? 1 : 0;
-            int yearAdj2 = Convert.ToInt32(Math.Floor(d)) + yearAdj1;
-            int year = start.Year + yearAdj1 + yearAdj2;
-            int day = DateTime.DaysInMonth(year, month);
-            return new DateTime(year, month, day);
+            DateTime start = basedate;
+            DateTime startIncremented = start.AddMonths(monthIncrement);
+            // adjust for end-of-month
+            int day = DateTime.DaysInMonth(startIncremented.Year, startIncremented.Month);
+            return new DateTime(startIncremented.Year, startIncremented.Month, day);
         }
 
         public static DateTime Decrement(this DateTime value)
