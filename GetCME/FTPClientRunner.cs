@@ -145,10 +145,6 @@ namespace GetCME
                     }
                 }
             }
-            if (deleteZips)
-            {
-                File.Delete(downloadfolder);
-            }
             Console.WriteLine("Program execution complete");
             Console.WriteLine("Press any key to continue ...");
             Console.ReadKey();

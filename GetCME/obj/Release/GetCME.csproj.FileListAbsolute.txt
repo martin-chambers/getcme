@@ -5,4 +5,3 @@ C:\git\GetCME\GetCME\obj\Release\GetCME.exe
 C:\git\GetCME\GetCME\obj\Release\GetCME.pdb
 C:\git\GetCME\GetCME\bin\Release\Ionic.Zip.dll
 C:\git\GetCME\GetCME\bin\Release\Ionic.Zip.xml
-C:\git\GetCME\GetCME\obj\Release\GetCME.csprojResolveAssemblyReference.cache
